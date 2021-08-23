@@ -126,6 +126,15 @@ const freezeUI = (freeze, cy) => {
   }
 };
 
+const markTheDeepestPath = (cy, maxId) => {
+  const theMax = cy.$(`#${maxId}`)
+  theMax.data('isTheDeepest', 1);
+  theMax.toggleClass('success');
+  const predecessors =  theMax.predecessors('node');
+  predecessors.data('isTheDeepest', 1);
+  predecessors.toggleClass('success');
+};
+
 const defaults = {
   nodeDimensionsIncludeLabels: false, // Boolean which changes whether label dimensions are included when calculating node dimensions
   fit: true, // Whether to fit
@@ -174,9 +183,11 @@ const defaults = {
       tip.show();
     });
 
+    // TODO: We need to find the id of the node that has the deepest path.
+    markTheDeepestPath(cy, 1484);
     // As we can call the layout from here, we have to restore the proper tap listener.
     cy.nodes().forEach((node) =>{
-      if (firstTimeRendering && (node.hasClass('failure') || node.hasClass('unknown'))) {
+      if (firstTimeRendering && node.data('isTheDeepest') !== 1 && (node.hasClass('failure') || node.hasClass('unknown'))) {
         // we want to collapse all the nodes that has the failure or unknown class.
         // This is required only when rendering for the first time the tree.
         node.successors().style('display', 'none');
