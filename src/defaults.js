@@ -131,16 +131,17 @@ const freezeUI = (freeze, cy) => {
 const markTheDeepestSuccessfulPath = (cy) => {
   const leaves = cy.nodes().leaves().filter('.success');
   if (!leaves || leaves.length === 0) {
-    return;
+    return false;
   }
   const predecessors = leaves.predecessors('node');
   if (!predecessors || predecessors.length === 0) {
-    return;
+    return false;
   }
   leaves.removeClass('success');
   predecessors.removeClass('success');
   leaves.addClass('longest-successful-path');
   predecessors.addClass('longest-successful-path');
+  return true;
 };
 
 const collapseNode = (node) => {
@@ -199,8 +200,8 @@ const defaults = {
       tip.show();
     });
 
-    markTheDeepestSuccessfulPath(cy);
-    let canICollapseUnknown = false;
+    let canICollapseUnknown = markTheDeepestSuccessfulPath(cy); // If a successful path has been marked, then the tree has been tested.
+    // We can proceed marking the unknown as well.
     // As we can call the layout from here, we have to restore the proper tap listener.
     cy.nodes().forEach((node) => {
       if (!isPlayingWithTheTree) {
