@@ -1,6 +1,6 @@
 cytoscape({
   container: document.getElementById('cy'),
-  elements: fetch('example-graphs/active_directory.json').then((res) => res.json()),
+  elements: fetch('example-graphs/active_directory_success.json').then((res) => res.json()),
   // elements: fetch('example-graphs/active_directory_updated.json').then((res) => res.json()),
   autoungrabify: true,
   autounselectify: true,
@@ -40,20 +40,28 @@ cytoscape({
     {
       selector: '.unknown',
       style: {
-        'background-color': '#94aaf3',
-      },
+        'background-color': '#94aaf3'
+      }
     },
     {
       selector: '.success',
       style: {
+        'background-color': '#00ff00'
+      }
+    },
+    {
+      selector: '.longest-successful-path',
+      style: {
         'background-color': '#00ff00',
-      },
+        'background-opacity': '1',
+        'background-blacken': '-0.3'
+      }
     },
     {
       selector: '.failure',
       style: {
-        'background-color': '#ff0000',
-      },
+        'background-color': '#ff0000'
+      }
     },
     {
       selector: 'edge',

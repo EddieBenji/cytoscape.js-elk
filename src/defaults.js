@@ -126,37 +126,19 @@ const freezeUI = (freeze, cy) => {
   }
 };
 
-const findTheDeepestLevel = (cy) => {
-  let deepestLevel = 0;
-  const leaves = cy.nodes().leaves();
-  leaves.forEach((leaf) => {
-    // add 1 to count the node it self.
-    const currentLevel = leaf.predecessors('node').length + 1;
-    if (deepestLevel < currentLevel) {
-      deepestLevel = currentLevel;
-    }
-  });
-  return deepestLevel;
-};
-
-const getDeepestLeaveIds = (cy, deepestLevel) => {
-  const leaves = cy.nodes().leaves();
-  const nodeIds = [];
-  leaves.forEach((leaf) => {
-    // add 1 to count the node it self.
-    const currentLevel = leaf.predecessors('node').length + 1;
-    if (deepestLevel === currentLevel) {
-      nodeIds.push(leaf.data().id);
-    }
-  });
-  return nodeIds;
-};
-
-const markTheDeepestPath = (cy, maxId) => {
-  const theMax = cy.$(`#${maxId}`);
-  theMax.data('isOnTheDeepestPath', 1);
-  const predecessors = theMax.predecessors('node');
-  predecessors.data('isOnTheDeepestPath', 1);
+const markTheDeepestSuccessfulPath = (cy) => {
+  const leaves = cy.nodes().leaves().filter('.success');
+  if (!leaves || leaves.length === 0) {
+    return;
+  }
+  const predecessors = leaves.predecessors('node');
+  if (!predecessors || predecessors.length === 0) {
+    return;
+  }
+  leaves.removeClass('success');
+  predecessors.removeClass('success');
+  leaves.addClass('longest-successful-path');
+  predecessors.addClass('longest-successful-path');
 };
 
 const defaults = {
@@ -207,15 +189,10 @@ const defaults = {
       tip.show();
     });
 
-    if (firstTimeRendering) {
-      // We want to show the longest/deepest path on the tree un-collapsed:
-      const deepestLevel = findTheDeepestLevel(cy);
-      const deepestNodes = getDeepestLeaveIds(cy, deepestLevel);
-      deepestNodes.forEach((nodeId) => markTheDeepestPath(cy, nodeId));
-    }
+    markTheDeepestSuccessfulPath(cy);
     // As we can call the layout from here, we have to restore the proper tap listener.
     cy.nodes().forEach((node) => {
-      if (firstTimeRendering && node.data('isOnTheDeepestPath') !== 1 && (node.hasClass('failure') || node.hasClass('unknown'))) {
+      if (node.hasClass('failure')) {
         // we want to collapse all the nodes that has the failure or unknown class.
         // This is required only when rendering for the first time the tree.
         node.successors().style('display', 'none');
