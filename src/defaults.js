@@ -3,7 +3,7 @@ import Tippy from 'tippy.js';
 import { generateGetBoundingClientRect } from './assign';
 
 // tooltip helper:
-let tip, selectedNodeFromTip, cytoLayout, isLoading = true, firstTimeRendering = true, isPlayingWithTheTree = false;
+let tip, selectedNodeFromTip, cytoLayout, isLoading = true, isPlayingWithTheTree = false;
 
 /**
  * When playing around with the layout, the tooltips were not being destroyed automatically. Therefore, we must remove them manually.
@@ -143,6 +143,14 @@ const markTheDeepestSuccessfulPath = (cy) => {
   predecessors.addClass('longest-successful-path');
 };
 
+const collapseNode = (node) => {
+  node.successors().style('display', 'none');
+  // if we want, we can comment the following line and not blacken the background of the node. It will be changed to isCollapsed=1,
+  // when the user actually clicks on the node in the UI.
+  node.data('isCollapsed', 1);
+  node.data('collapseSuccessors', node.successors());
+};
+
 const defaults = {
   nodeDimensionsIncludeLabels: false, // Boolean which changes whether label dimensions are included when calculating node dimensions
   fit: true, // Whether to fit
@@ -192,22 +200,25 @@ const defaults = {
     });
 
     markTheDeepestSuccessfulPath(cy);
+    let canICollapseUnknown = false;
     // As we can call the layout from here, we have to restore the proper tap listener.
     cy.nodes().forEach((node) => {
-      if (!isPlayingWithTheTree && node.hasClass('failure')) {
-        const successorsNodesToCollapse = node.neighborhood('node');
-        successorsNodesToCollapse.forEach((childNode, index) => {
-          if (index === 0) {
-            // Ignore the first one because it's the parent.
-            return;
-          }
-          // we want to collapse all the nodes that has the failure class.
-          childNode.successors().style('display', 'none');
-          // if we want, we can comment the following line and not blacken the background of the node. It will be changed to isCollapsed=1,
-          // when the user actually clicks on the node in the UI.
-          childNode.data('isCollapsed', 1);
-          childNode.data('collapseSuccessors', childNode.successors());
-        });
+      if (!isPlayingWithTheTree) {
+        if (node.hasClass('failure')) {
+          canICollapseUnknown = true; // It means the tree has been tested, therefore, we can collapse anything.
+          const successorsNodesToCollapse = node.neighborhood('node');
+          successorsNodesToCollapse.forEach((childNode, index) => {
+            if (index === 0) {
+              // Ignore the first one because it's the parent.
+              return;
+            }
+            // we want to collapse all the children nodes from this 'failed' one.
+            collapseNode(childNode);
+          });
+        } else if (canICollapseUnknown && node.hasClass('unknown')) {
+          // we want to collapse all the nodes that has the unknown class.
+          collapseNode(node);
+        }
       }
       if (!isEmpty(node.data('collapseSuccessors'))) {
         node.on('tap', tapListenerForUnCollapsing);
@@ -220,7 +231,6 @@ const defaults = {
       removeTip();
     });
     freezeUI(false, cy);
-    firstTimeRendering = false;
   }, // Callback on layoutready
   stop: undefined, // Callback on layoutstop
   elk: {
