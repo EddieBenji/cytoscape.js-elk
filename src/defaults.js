@@ -3,7 +3,7 @@ import Tippy from 'tippy.js';
 import { generateGetBoundingClientRect } from './assign';
 
 // tooltip helper:
-let tip, selectedNodeFromTip, cytoLayout, isLoading = true, firstTimeRendering = true;
+let tip, selectedNodeFromTip, cytoLayout, isLoading = true, firstTimeRendering = true, isPlayingWithTheTree = false;
 
 /**
  * When playing around with the layout, the tooltips were not being destroyed automatically. Therefore, we must remove them manually.
@@ -71,6 +71,7 @@ const isLeafNode = (node) => {
 };
 
 const tapListenerForUnCollapsing = (evt) => {
+  isPlayingWithTheTree = true;
   evt.stopPropagation();
   evt.preventDefault();
   if (isLoading) {
@@ -92,6 +93,7 @@ const tapListenerForUnCollapsing = (evt) => {
 };
 
 const tapListenerForCollapsing = (evt) => {
+  isPlayingWithTheTree = true;
   evt.stopPropagation();
   evt.preventDefault();
   if (isLoading) {
@@ -192,14 +194,20 @@ const defaults = {
     markTheDeepestSuccessfulPath(cy);
     // As we can call the layout from here, we have to restore the proper tap listener.
     cy.nodes().forEach((node) => {
-      if (node.hasClass('failure')) {
-        // we want to collapse all the nodes that has the failure or unknown class.
-        // This is required only when rendering for the first time the tree.
-        node.successors().style('display', 'none');
-        // if we want, we can comment the following line and not blacken the background of the node. It will be changed to isCollapsed=1,
-        // when the user actually clicks on the node in the UI.
-        node.data('isCollapsed', 1);
-        node.data('collapseSuccessors', node.successors());
+      if (!isPlayingWithTheTree && node.hasClass('failure')) {
+        const successorsNodesToCollapse = node.neighborhood('node');
+        successorsNodesToCollapse.forEach((childNode, index) => {
+          if (index === 0) {
+            // Ignore the first one because it's the parent.
+            return;
+          }
+          // we want to collapse all the nodes that has the failure class.
+          childNode.successors().style('display', 'none');
+          // if we want, we can comment the following line and not blacken the background of the node. It will be changed to isCollapsed=1,
+          // when the user actually clicks on the node in the UI.
+          childNode.data('isCollapsed', 1);
+          childNode.data('collapseSuccessors', childNode.successors());
+        });
       }
       if (!isEmpty(node.data('collapseSuccessors'))) {
         node.on('tap', tapListenerForUnCollapsing);
