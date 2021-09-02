@@ -127,21 +127,61 @@ const freezeUI = (freeze, cy) => {
     cy.container().classList.remove('while-loading'); // restore the color of the tree.
   }
 };
+/**
+ * Checks on the three whether if there is at least one node marked with the longest-successful-path class. If so, it means the path has
+ * been already marked.
+ */
+const isDeepestSuccessfulPathAlreadyMarked = (cy) => {
+  return !isEmpty(cy.nodes().filter('.longest-successful-path'));
+};
 
-const markTheDeepestSuccessfulPath = (cy) => {
-  const leaves = cy.nodes().leaves().filter('.success');
-  if (!leaves || leaves.length === 0) {
-    return false;
+const findTheDeepestSuccessfulLevel = (cy) => {
+  let deepestLevel = 0;
+  const successfulNodes = cy.nodes().filter('.success');
+  if (isEmpty(successfulNodes)) {
+    return deepestLevel;
   }
-  const predecessors = leaves.predecessors('node');
-  if (!predecessors || predecessors.length === 0) {
-    return false;
+  successfulNodes.forEach((successNode) => {
+    const beforeMe = successNode.predecessors('node');
+    if (isEmpty(beforeMe)) {
+      return;
+    }
+    // add 1 to count the node it self.
+    const currentLevel = beforeMe.length + 1;
+    if (deepestLevel < currentLevel) {
+      deepestLevel = currentLevel;
+    }
+  });
+  return deepestLevel;
+};
+
+const getDeepestLeaveIds = (cy, deepestLevel) => {
+  const successfulNodes = cy.nodes().filter('.success');
+  const nodeIds = [];
+  if (isEmpty(successfulNodes)) {
+    return nodeIds;
   }
-  leaves.removeClass('success');
+  successfulNodes.forEach((successNode) => {
+    const beforeMe = successNode.predecessors('node');
+    if (isEmpty(beforeMe)) {
+      return;
+    }
+    // add 1 to count the node it self.
+    const currentLevel = beforeMe.length + 1;
+    if (deepestLevel === currentLevel) {
+      nodeIds.push(successNode.data().id);
+    }
+  });
+  return nodeIds;
+};
+
+const markTheDeepestPath = (cy, maxId) => {
+  const theMax = cy.$(`#${maxId}`);
+  const predecessors = theMax.predecessors('node');
+  theMax.removeClass('success');
   predecessors.removeClass('success');
-  leaves.addClass('longest-successful-path');
+  theMax.addClass('longest-successful-path');
   predecessors.addClass('longest-successful-path');
-  return true;
 };
 
 const collapseNode = (node) => {
@@ -200,8 +240,20 @@ const defaults = {
       tip.show();
     });
 
-    let canICollapseUnknown = markTheDeepestSuccessfulPath(cy); // If a successful path has been marked, then the tree has been tested.
-    // We can proceed marking the unknown as well.
+    cytoLayout = undefined;
+    let canICollapseUnknown;
+    if (!isDeepestSuccessfulPathAlreadyMarked(cy)) {
+      // We want to show the longest/deepest successful path on the tree un-collapsed:
+      const deepestLevel = findTheDeepestSuccessfulLevel(cy);
+      // If a successful path has been marked, then the tree has been tested. We can proceed marking the unknown as well:
+      canICollapseUnknown = deepestLevel > 1;
+      const deepestNodes = getDeepestLeaveIds(cy, deepestLevel);
+      // In theory, only one successful node will be the longest, however, this logic is prepared for having 2 (or more) nodes at
+      // the same level and both paths (branches) will be marked:
+      deepestNodes.forEach((nodeId) => markTheDeepestPath(cy, nodeId));
+    } else {
+      canICollapseUnknown = true;
+    }
     // As we can call the layout from here, we have to restore the proper tap listener.
     cy.nodes().forEach((node) => {
       if (!isPlayingWithTheTree) {
