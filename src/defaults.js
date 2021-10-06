@@ -4,6 +4,7 @@ import { generateGetBoundingClientRect } from './assign';
 
 // tooltip helper:
 let tip, selectedNodeFromTip, cytoLayout, isLoading = true, isPlayingWithTheTree = false;
+let firstTimeLoading = true; // It's the equivalent to CommsForTreeService.getMessage().isTheTreeReRendered on the project.
 
 /**
  * When playing around with the layout, the tooltips were not being destroyed automatically. Therefore, we must remove them manually.
@@ -291,6 +292,10 @@ const defaults = {
     cy.on('zoom', () => {
       removeTip();
     });
+    if (firstTimeLoading) {
+      firstTimeLoading = false;
+      setAndRefreshLayout(cy);
+    }
     freezeUI(false, cy);
   }, // Callback on layoutready
   stop: undefined, // Callback on layoutstop
