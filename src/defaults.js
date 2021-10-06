@@ -295,8 +295,9 @@ const defaults = {
     if (firstTimeLoading) {
       firstTimeLoading = false;
       setAndRefreshLayout(cy);
+    } else {
+      freezeUI(false, cy);
     }
-    freezeUI(false, cy);
   }, // Callback on layoutready
   stop: undefined, // Callback on layoutstop
   elk: {
