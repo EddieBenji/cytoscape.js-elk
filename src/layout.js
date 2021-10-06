@@ -166,7 +166,7 @@ class Layout {
 
     const elk = new ELK();
     const graph = makeGraph(nodes, edges, options);
-    graph['layoutOptions'] = options.elk
+    graph['layoutOptions'] = options.elk;
     elk
       .layout(graph)
       .then(() => {
